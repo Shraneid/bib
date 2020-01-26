@@ -7,11 +7,13 @@ const cheerio = require('cheerio');
  * @return {Object} restaurant
  */
 const parse = data => {
-  const $ = cheerio.load(data);
-  const name = $('.section-main h2.restaurant-details__heading--title').text();
-  const experience = $('#experience-section > ul > li:nth-child(2)').text();
-
-  return {name, experience};
+    const $ = cheerio.load(data);
+    let names = [];
+    const parent = $('.section-main .search-results__column .row h5').each(
+        function(i, elem) {
+            names.push($(this).text().trim());
+        });
+    return names;
 };
 
 /**
@@ -19,17 +21,26 @@ const parse = data => {
  * @param  {String}  url
  * @return {Object} restaurant
  */
-module.exports.scrapeRestaurant = async url => {
-  const response = await axios(url);
-  const {data, status} = response;
+const scrapeRestaurant = async url => {
+    let count = 1;
+    let temp = [1, 2]
+    let final = []
 
-  if (status >= 200 && status < 300) {
-    return parse(data);
-  }
+    do {
+        const response = await axios(url + count.toString());
+        const { data, status } = response;
 
-  console.error(status);
+        if (status >= 200 && status < 300) {
+            temp = parse(data);
+        } else {
+            console.error(status);
+            return null;
+        }
+        final = final.concat(temp);
+        count++;
+    } while (temp.length > 0)
 
-  return null;
+    return final;
 };
 
 /**
@@ -37,5 +48,9 @@ module.exports.scrapeRestaurant = async url => {
  * @return {Array} restaurants
  */
 module.exports.get = () => {
-  return [];
+    return [];
 };
+
+let txt = scrapeRestaurant('https://guide.michelin.com/fr/fr/restaurants/bib-gourmand/page/');
+let variable = "";
+txt.then(response => console.log(response));
