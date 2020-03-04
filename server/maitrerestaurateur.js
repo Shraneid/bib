@@ -2,6 +2,15 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const util = require("util");
+const iconv = require('iconv-lite');
+
+axios.interceptors.response.use(response => {
+    let ctype = response.headers["content-type"];
+    if (ctype.includes("charset=ISO-8859-1")) {
+        response.data = iconv.decode(response.data, 'ISO-8859-1');
+    }
+    return response;
+})
 
 /**
  * Parse webpage restaurant
@@ -11,9 +20,10 @@ const util = require("util");
 const parse = data => {
     const $ = cheerio.load(data);
     let names = [];
-    const parent = $('.section-main .search-results__column .row h5').each(
+    const parent = $('.single_desc .single_libel a').each(
         function(i, elem) {
-            names.push($(this).text().trim());
+            let tmp = $(elem).text().trim();
+            names.push($(elem).text().trim().toLowerCase().split('(')[0].trim());
         });
     return names;
 };
@@ -23,14 +33,27 @@ const parse = data => {
  * @param  {String}  url
  * @return {Object} restaurant
  */
-const scrapeRestaurant = async url => {
+const scrapeRestaurant = async() => {
     let final = []
-    if (true){
+    if (true) {
         let count = 1;
         let temp = [1, 2]
+        var dat = "";
         do {
-            const response = await axios(url + count.toString());
+            console.log(count.toString());
+            dat = "page=" + count.toString() + '&sort=undefined&request_id=d8621c7d35c333e0b1411fa47bacfe81&annuaire_mode=&annuaire_action=&annuaire_action_arg=&annuaire_appli=&annuaire_as_no=';
+            //console.log(dat);
+            const response = await axios({
+                method: 'post',
+                url: 'https://www.maitresrestaurateurs.fr/annuaire/ajax/loadresult',
+                headers: { 'content-type': 'application/x-www-form-urlencoded' },
+                data: dat,
+                responseType: 'arraybuffer',
+                reponseEncoding: 'binary'
+            });
             const { data, status } = response;
+
+            //console.log(data);
 
             if (status >= 200 && status < 300) {
                 temp = parse(data);
@@ -39,6 +62,7 @@ const scrapeRestaurant = async url => {
                 return null;
             }
             final = final.concat(temp);
+            //console.log(final);
             count++;
         } while (temp.length > 0)
     } else {
@@ -48,30 +72,33 @@ const scrapeRestaurant = async url => {
     return final;
 };
 
-/**
- * Get all France located Bib Gourmand restaurants
- * @return {Array} restaurants
- */
-module.exports.get = () => {
-    try{
-        var final = fs.readFileSync("bib.json").toString();
-        final = JSON.parse(final);
-    } catch (err) {
-        loadData();
-        var final = module.exports.get(); 
+async function loadData() {
+    let txt = "";
+    try {
+        txt = fs.readFileSync("maitrerestaurateur.json").toString();
+        //console.log(txt);
+        console.log("data loaded");
+    } catch (error) {
+        console.log(error);
+        txt = await scrapeRestaurant();
+        console.log("Saving to JSON...");
+        txt = JSON.stringify(txt);
+        fs.writeFile('maitrerestaurateur.json', txt, (err) => {
+            if (err) throw err;
+            console.log('The file has been saved!');
+        });
     }
-    return final;
-};
-
-async function loadData(){
-    var txt = await scrapeRestaurant('https://guide.michelin.com/fr/fr/restaurants/bib-gourmand/page/');
-    console.log(txt);
-    txt = JSON.stringify(txt);
-    fs.writeFile('bib.json', txt, (err) => {
-        if (err) throw err;
-        console.log('The file has been saved!');
-      });
+    return txt;
 }
 
-console.log(module.exports.get());
+module.exports.get = async() => {
+    let restaurants = await loadData();
+    return restaurants;
+};
 
+(async() => {
+    const rest = await module.exports.get();
+
+    //console.log("rest : " + rest);
+    console.log("baboobaboo");
+})();
