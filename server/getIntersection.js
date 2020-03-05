@@ -56,7 +56,7 @@ for (let rest in bib) {
 }
 
 txt = JSON.stringify(intersection);
-fs.writeFile('./bibxmr/src/finalData.json', txt, (err) => {
+fs.writeFile('../bibxmr/src/finalData.json', txt, (err) => {
     if (err) throw err;
     console.log('The file has been saved!');
 });

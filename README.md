@@ -1,4 +1,6 @@
-# BIB
+﻿# BIB
+
+# CLIENT FOLDER IS BIBXMR TO START THE REACT, CD INTO BIBXMR AND USE COMMAND --> npm start run
 
 > Maître Restaurateur x Bib Gourmand
 
