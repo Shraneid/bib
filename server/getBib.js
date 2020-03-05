@@ -76,7 +76,7 @@ const scrapeMichelin = async url => {
 
 module.exports.get = async () => {
     try {
-        txt = fs.readFileSync("maitrerestaurateur.json").toString();
+        txt = fs.readFileSync("bibRestaurants.json").toString();
         //console.log(txt);
         console.log("data loaded");
     } catch (error) {
